@@ -1,0 +1,27 @@
+{
+  "name": "marnie-zach-wedding",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fontsource/bodoni-moda": "^5.2.6",
+    "@fontsource/cormorant-garamond": "^5.2.6",
+    "@fontsource/pinyon-script": "^5.2.5",
+    "@upstash/redis": "^1.35.3",
+    "next": "^15.5.4",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.5",
+    "@types/react": "^19.1.12",
+    "typescript": "^5.6.3"
+  },
+  "private": true
+}
