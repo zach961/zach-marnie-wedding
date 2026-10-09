@@ -9,7 +9,7 @@ export async function GET() {
   if (!(await isAdmin())) return new Response("Unauthorised", { status: 401 });
   const rows = await listRsvps();
   const lines = [
-    ["Received", "Reply", "Names", "Adults", "Kids"].map(cell).join(","),
+    ["Received", "Reply", "Names", "Adults", "Kids", "Transport"].map(cell).join(","),
     ...rows.map((r) =>
       [
         new Date(r.createdAt).toLocaleString("en-AU", { timeZone: "Australia/Brisbane" }),
@@ -17,6 +17,7 @@ export async function GET() {
         r.names.join("; "),
         r.attending ? r.adults : 0,
         r.attending ? r.kids : 0,
+        r.transport === true ? "Yes" : r.transport === false ? "No" : "",
       ].map(cell).join(",")
     ),
   ];

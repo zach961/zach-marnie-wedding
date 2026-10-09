@@ -73,6 +73,7 @@ export const transportNote =
 export const rsvpCopy = {
   heading: "Kindly Reply",
   intro: "We would love for you to join us in celebrating our special day.",
+  transport: "Will you require transport to the reception?",
   by: `Please RSVP by ${rsvpDeadline.label} so we can finalise arrangements.`,
   thanksYes: "Thank you — we can’t wait to celebrate with you!",
   thanksNo: "Thank you for letting us know. You’ll be missed.",

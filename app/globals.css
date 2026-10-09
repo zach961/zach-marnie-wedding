@@ -219,6 +219,8 @@ p { margin: 0; }
   font-size: 21px; font-style: italic; transition: background .2s, color .2s;
 }
 .choice-btn.on { background: var(--ink); color: var(--paper); }
+.choice.two { grid-template-columns: 1fr 1fr; margin: 0; }
+.choice.two .field-label { letter-spacing: .12em; line-height: 1.5; }
 .rsvp-details { display: grid; gap: 18px; margin-top: 22px; animation: fade .35s ease; }
 @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .stepper { display: flex; align-items: center; justify-content: space-between; background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px 10px 18px; }

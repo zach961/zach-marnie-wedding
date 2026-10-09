@@ -22,6 +22,7 @@ export default function RsvpForm() {
   const [attending, setAttending] = useState<boolean | null>(null);
   const [adults, setAdults] = useState(1);
   const [kids, setKids] = useState(0);
+  const [transport, setTransport] = useState<boolean | null>(null);
   const [names, setNames] = useState<string[]>([""]);
   const [website, setWebsite] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "done" | "error">("idle");
@@ -44,12 +45,13 @@ export default function RsvpForm() {
     if (attending === null) return setError("Please let us know if you can attend.");
     const clean = names.map((n) => n.trim());
     if (clean.some((n) => !n)) return setError(attending ? "Please enter a name for each adult." : "Please enter each name.");
+    if (attending && transport === null) return setError("Please let us know if you need transport to the reception.");
     setStatus("sending");
     try {
       const res = await fetch("/api/rsvp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ attending, adults, kids: attending ? kids : 0, names: clean, website }),
+        body: JSON.stringify({ attending, adults, kids: attending ? kids : 0, names: clean, ...(attending ? { transport } : {}), website }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Something went wrong.");
@@ -67,7 +69,7 @@ export default function RsvpForm() {
         <p className="lead">{attending ? rsvpCopy.thanksYes : rsvpCopy.thanksNo}</p>
         {attending && (
           <p className="note">
-            {adults} adult{adults > 1 ? "s" : ""}{kids > 0 ? ` and ${kids} child${kids > 1 ? "ren" : ""}` : ""} · {names.join(", ")}
+            {adults} adult{adults > 1 ? "s" : ""}{kids > 0 ? ` and ${kids} child${kids > 1 ? "ren" : ""}` : ""} · {names.join(", ")} · {transport ? "Transport needed" : "No transport needed"}
           </p>
         )}
       </div>
@@ -110,6 +112,18 @@ export default function RsvpForm() {
               />
             ))}
           </div>
+
+          {attending && (
+            <fieldset className="choice two">
+              <legend className="field-label">{rsvpCopy.transport}</legend>
+              <button type="button" className={transport === true ? "choice-btn on" : "choice-btn"} onClick={() => setTransport(true)} aria-pressed={transport === true}>
+                Yes, please
+              </button>
+              <button type="button" className={transport === false ? "choice-btn on" : "choice-btn"} onClick={() => setTransport(false)} aria-pressed={transport === false}>
+                No, thank you
+              </button>
+            </fieldset>
+          )}
 
           {/* honeypot */}
           <input className="hp" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} aria-hidden />

@@ -16,7 +16,7 @@ const TZ = "Australia/Brisbane";
 const HEAD_ROW = 7;
 const FIRST_ROW = 8;
 const HEADERS = ["Replied", "Name", "Attending", "Guest list match", "Note", "Also in this reply",
-  "Adults in reply", "Children in reply", "Reply ID", "Timestamp"];
+  "Adults in reply", "Children in reply", "Reply ID", "Timestamp", "Transport"];
 const LAST_COL = colLetter(HEADERS.length - 1);
 
 const rgb = (hex: string) => ({
@@ -116,7 +116,7 @@ async function createRsvpTab(): Promise<TabMeta> {
         cell: { userEnteredFormat: { wrapStrategy: "WRAP" } }, fields: "userEnteredFormat.wrapStrategy",
       } },
       { setBasicFilter: { filter: { range: { sheetId: id, startRowIndex: HEAD_ROW - 1, startColumnIndex: 0, endColumnIndex: HEADERS.length } } } },
-      ...[150, 200, 90, 200, 260, 240, 110, 120, 110, 110].map((pixelSize, i) => ({
+      ...[150, 200, 90, 200, 260, 240, 110, 120, 110, 110, 100].map((pixelSize, i) => ({
         updateDimensionProperties: { range: { sheetId: id, dimension: "COLUMNS", startIndex: i, endIndex: i + 1 }, properties: { pixelSize }, fields: "pixelSize" },
       })),
     ],
@@ -130,6 +130,9 @@ async function runSync(): Promise<Summary> {
   const guestMeta = find(GUEST_TAB);
   if (!guestMeta) throw new SheetError(`Couldn't find a tab called "${GUEST_TAB}" in the sheet.`);
   const rsvpMeta = find(RSVP_TAB) || (await createRsvpTab());
+  // A tab made before a column was added to the log needs widening first.
+  const narrow = HEADERS.length - (rsvpMeta.properties.gridProperties?.columnCount || HEADERS.length);
+  if (narrow > 0) await sheets(":batchUpdate", { requests: [{ appendDimension: { sheetId: rsvpMeta.properties.sheetId, dimension: "COLUMNS", length: narrow } }] });
   const guestTab = tab(guestMeta.properties.title);
   const rsvpTab = tab(rsvpMeta.properties.title);
 
@@ -169,9 +172,9 @@ async function runSync(): Promise<Summary> {
   const s = result.summary;
   data.push(
     { range: `${rsvpTab}!A1:A2`, values: [["RSVPs from the website"], [`Last synced ${when(new Date().toISOString(), true)} · updates whenever someone replies`]] },
-    { range: `${rsvpTab}!A4:F5`, values: [
-      ["People replied", "Adults attending", "Children attending", "Declined", "Not matched to guest list", "Guests still to reply"],
-      [s.replied, s.attending, s.kids, s.declined, s.unmatched, s.awaiting],
+    { range: `${rsvpTab}!A4:G5`, values: [
+      ["People replied", "Adults attending", "Children attending", "Declined", "Not matched to guest list", "Guests still to reply", "Need transport"],
+      [s.replied, s.attending, s.kids, s.declined, s.unmatched, s.awaiting, s.transport],
     ] },
     { range: `${rsvpTab}!A${HEAD_ROW}:${LAST_COL}${HEAD_ROW}`, values: [HEADERS] },
   );
@@ -179,7 +182,8 @@ async function runSync(): Promise<Summary> {
     data.push({
       range: `${rsvpTab}!A${FIRST_ROW}:${LAST_COL}${FIRST_ROW + result.people.length - 1}`,
       values: result.people.map((p) => [when(p.date, true), p.name, p.attending ? "Yes" : "No", p.match, p.note,
-        p.party.join(", "), p.adults, p.kids, p.replyId, p.date]),
+        p.party.join(", "), p.adults, p.kids, p.replyId, p.date,
+        p.transport === true ? "Yes" : p.transport === false ? "No" : ""]),
     });
   }
   await sheets("/values:batchClear", { ranges: [`${rsvpTab}!A${FIRST_ROW}:${LAST_COL}`] });

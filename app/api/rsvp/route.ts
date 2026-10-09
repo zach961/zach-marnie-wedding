@@ -38,6 +38,9 @@ export async function POST(req: Request) {
   if (attending && (adults < 1 || names.length !== adults)) {
     return NextResponse.json({ error: "Please enter a name for each adult." }, { status: 400 });
   }
+  if (attending && typeof body.transport !== "boolean") {
+    return NextResponse.json({ error: "Please let us know if you need transport to the reception." }, { status: 400 });
+  }
 
   await addRsvp({
     id: randomUUID(),
@@ -46,6 +49,7 @@ export async function POST(req: Request) {
     adults,
     kids,
     names,
+    ...(attending ? { transport: body.transport as boolean } : {}),
   });
   // Update the Google Sheet once the guest has their answer; a sheet problem never affects the RSVP.
   after(() => syncSheet());

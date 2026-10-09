@@ -36,6 +36,7 @@ export type Person = {
   adults: number;
   kids: number;
   party: string[]; // the other names on the same reply
+  transport: boolean | null; // null when the reply didn't answer the question
   superseded?: boolean;
 };
 
@@ -109,6 +110,7 @@ export function flattenPeople(rsvps: Rsvp[]): Person[] {
         key: `${r.id}|${norm(name)}`, replyId: r.id, name, attending: r.attending === true,
         date: r.createdAt, adults: num(r.adults), kids: r.attending === true ? num(r.kids) : 0,
         party: names.filter((n) => n !== name),
+        transport: r.attending === true && typeof r.transport === "boolean" ? r.transport : null,
       });
     }
   }
@@ -194,7 +196,7 @@ export function autoLink(guests: Guest[], people: Person[], seen: Set<string>) {
 
 export type GuestResult = { r: number; status: string; coming: number | ""; replied: string };
 export type PersonResult = Person & { match: string; note: string; matched: boolean };
-export type Summary = { replied: number; attending: number; declined: number; kids: number; unmatched: number; awaiting: number };
+export type Summary = { replied: number; attending: number; declined: number; kids: number; unmatched: number; awaiting: number; transport: number };
 
 /** Works out what to show for every guest row and every person who replied. */
 export function compute(guests: Guest[], people: Person[]): { guests: GuestResult[]; people: PersonResult[]; summary: Summary } {
@@ -238,6 +240,10 @@ export function compute(guests: Guest[], people: Person[]): { guests: GuestResul
   const current = people.filter((p) => !p.superseded);
   const kidsByReply = new Map<string, number>();
   for (const p of current) if (p.attending) kidsByReply.set(p.replyId, p.kids);
+  // People needing transport: the adults who said yes, plus the children on those replies.
+  let transport = current.filter((p) => p.attending && p.transport).length;
+  const counted = new Set<string>();
+  for (const p of current) if (p.attending && p.transport && !counted.has(p.replyId)) { counted.add(p.replyId); transport += p.kids; }
   let kids = 0;
   for (const k of kidsByReply.values()) kids += k;
 
@@ -251,6 +257,7 @@ export function compute(guests: Guest[], people: Person[]): { guests: GuestResul
       kids,
       unmatched: current.filter((p) => !owner.get(norm(p.name))).length,
       awaiting: guests.filter((g) => g.adults > 0 && !g.kidRow && !g.links.length).length,
+      transport,
     },
   };
 }

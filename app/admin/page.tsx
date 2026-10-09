@@ -64,6 +64,7 @@ export default async function Admin() {
   const no = rsvps.filter((r) => !r.attending);
   const adults = yes.reduce((s, r) => s + r.adults, 0);
   const kids = yes.reduce((s, r) => s + r.kids, 0);
+  const transport = yes.filter((r) => r.transport).reduce((s, r) => s + r.adults + r.kids, 0);
 
   return (
     <main className="admin">
@@ -79,6 +80,7 @@ export default async function Admin() {
         <div><span className="stat-n">{adults + kids}</span><span className="stat-l">Total attending</span></div>
         <div><span className="stat-n">{adults}</span><span className="stat-l">Adults</span></div>
         <div><span className="stat-n">{kids}</span><span className="stat-l">Children</span></div>
+        <div><span className="stat-n">{transport}</span><span className="stat-l">Need transport</span></div>
         <div><span className="stat-n">{yes.length}</span><span className="stat-l">Accepted replies</span></div>
         <div><span className="stat-n">{no.length}</span><span className="stat-l">Declined replies</span></div>
       </div>
@@ -87,7 +89,7 @@ export default async function Admin() {
         <div className="table-wrap">
           <table className="table">
             <thead>
-              <tr><th>Received</th><th>Reply</th><th>Names</th><th>Adults</th><th>Kids</th><th></th></tr>
+              <tr><th>Received</th><th>Reply</th><th>Names</th><th>Adults</th><th>Kids</th><th>Transport</th><th></th></tr>
             </thead>
             <tbody>
               {rsvps.map((r) => (
@@ -97,6 +99,7 @@ export default async function Admin() {
                   <td>{r.names.join(", ")}</td>
                   <td>{r.attending ? r.adults : "–"}</td>
                   <td>{r.attending ? r.kids : "–"}</td>
+                  <td>{r.transport === true ? "Yes" : r.transport === false ? "No" : "–"}</td>
                   <td>
                     <form action={remove}>
                       <input type="hidden" name="id" value={r.id} />

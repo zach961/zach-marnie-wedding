@@ -9,6 +9,8 @@ export type Rsvp = {
   adults: number;
   kids: number;
   names: string[];
+  /** Needs the transport from the church to the reception. Absent on declines and on replies sent before the question existed. */
+  transport?: boolean;
 };
 
 const KEY = "rsvps";
