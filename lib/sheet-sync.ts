@@ -16,8 +16,9 @@ const TZ = "Australia/Brisbane";
 // Layout of the RSVPs tab (rows are 1-based, as shown in the sheet).
 const HEAD_ROW = 7;
 const FIRST_ROW = 8;
-const HEADERS = ["Replied", "Name", "Attending", "Guest list match", "Note", "Also in this reply",
-  "Adults in reply", "Children in reply", "Reply ID", "Timestamp", "Transport"];
+// One row per reply. The last column is kept empty: it held data in an earlier layout.
+const HEADERS = ["Replied", "Names", "Attending", "Guest list match", "Note", "Adults", "Children",
+  "Transport", "Reply ID", "Timestamp", ""];
 const LAST_COL = colLetter(HEADERS.length - 1);
 
 const rgb = (hex: string) => ({
@@ -179,12 +180,22 @@ async function runSync(): Promise<Summary> {
     ] },
     { range: `${rsvpTab}!A${HEAD_ROW}:${LAST_COL}${HEAD_ROW}`, values: [HEADERS] },
   );
-  if (result.people.length) {
+  // Group the people back into their replies (newest first), one row each.
+  const replies: (typeof result.people)[] = [];
+  for (const p of result.people) {
+    const row = replies.find((r) => r[0].replyId === p.replyId);
+    if (row) row.push(p); else replies.push([p]);
+  }
+  if (replies.length) {
     data.push({
-      range: `${rsvpTab}!A${FIRST_ROW}:${LAST_COL}${FIRST_ROW + result.people.length - 1}`,
-      values: result.people.map((p) => [when(p.date, true), p.name, p.attending ? "Yes" : "No", p.match, p.note,
-        p.party.join(", "), p.adults, p.kids, p.replyId, p.date,
-        p.transport === true ? "Yes" : p.transport === false ? "No" : ""]),
+      range: `${rsvpTab}!A${FIRST_ROW}:${LAST_COL}${FIRST_ROW + replies.length - 1}`,
+      values: replies.map((r) => {
+        const first = r[0];
+        const notes = r.filter((p) => p.note).map((p) => (r.length > 1 ? `${p.name}: ${p.note}` : p.note));
+        return [when(first.date, true), r.map((p) => p.name).join(", "), first.attending ? "Yes" : "No",
+          r.map((p) => p.match).join(", "), notes.join("; "), r.length, first.kids,
+          first.transport === true ? "Yes" : first.transport === false ? "No" : "", first.replyId, first.date, ""];
+      }),
     });
   }
   await sheets("/values:batchClear", { ranges: [`${rsvpTab}!A${FIRST_ROW}:${LAST_COL}`] });
@@ -208,11 +219,11 @@ async function runSync(): Promise<Summary> {
   }));
   const matchCol = { sheetId: rsvpMeta.properties.sheetId, startColumnIndex: 3, endColumnIndex: 4, startRowIndex: FIRST_ROW - 1 };
   requests.push({ repeatCell: { range: matchCol, cell: {}, fields: "userEnteredFormat.backgroundColor" } });
-  if (result.people.length) {
+  if (replies.length) {
     requests.push({
       updateCells: {
-        range: { ...matchCol, endRowIndex: FIRST_ROW - 1 + result.people.length },
-        rows: result.people.map((p) => ({ values: [paint(!p.matched && !p.superseded ? FLAG : null)] })),
+        range: { ...matchCol, endRowIndex: FIRST_ROW - 1 + replies.length },
+        rows: replies.map((r) => ({ values: [paint(r.some((p) => !p.matched) ? FLAG : null)] })),
         fields: "userEnteredFormat.backgroundColor",
       },
     });

@@ -124,8 +124,8 @@ export function flattenPeople(rsvps: Rsvp[]): Person[] {
 export function seenKeys(rows: Grid) {
   const seen = new Set<string>();
   for (const row of rows) {
-    const name = String((row || [])[1] ?? "").trim();
-    if (name) seen.add(`${String(row[8] ?? "")}|${norm(name)}`);
+    // Column B lists everyone on the reply; column I is the reply's ID.
+    for (const name of splitNames((row || [])[1])) seen.add(`${String(row[8] ?? "")}|${norm(name)}`);
   }
   return seen;
 }
