@@ -1,9 +1,10 @@
 import { cookies } from "next/headers";
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { COOKIE, isAdmin, sessionToken, sheetKey } from "@/lib/auth";
-import { deleteRsvp, listRsvps } from "@/lib/store";
-import CopyButton from "@/components/CopyButton";
+import { COOKIE, isAdmin, sessionToken } from "@/lib/auth";
+import { deleteRsvp, getSyncStatus, listRsvps } from "@/lib/store";
+import { sheetConnection, syncSheet } from "@/lib/sheet-sync";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "RSVPs · Admin", robots: { index: false } };
@@ -26,6 +27,14 @@ async function remove(form: FormData) {
   "use server";
   if (!(await isAdmin())) return;
   await deleteRsvp(String(form.get("id")));
+  after(() => syncSheet());
+  revalidatePath("/admin");
+}
+
+async function syncNow() {
+  "use server";
+  if (!(await isAdmin())) return;
+  await syncSheet();
   revalidatePath("/admin");
 }
 
@@ -47,6 +56,8 @@ export default async function Admin() {
   }
 
   const rsvps = await listRsvps();
+  const sheet = sheetConnection();
+  const synced = sheet.configured ? await getSyncStatus() : null;
   const yes = rsvps.filter((r) => r.attending);
   const no = rsvps.filter((r) => !r.attending);
   const adults = yes.reduce((s, r) => s + r.adults, 0);
@@ -97,26 +108,25 @@ export default async function Admin() {
         </div>
       )}
 
-      <details className="sheet-sync">
-        <summary>Google Sheet sync</summary>
-        <p>
-          Keeps the Guest List tab of your Wedding Planning sheet up to date with these replies: who has replied,
-          who is coming, who has declined, and anyone who isn’t on the list.
-        </p>
-        <ol>
-          <li>Copy the script. In the sheet, open Extensions → Apps Script, paste it in place of the placeholder code, and save.</li>
-          <li>Reload the sheet, then choose Wedding RSVPs → Connect to the website…</li>
-          <li>Approve Google’s permission prompt, choose Connect to the website… once more, and paste the sync key.</li>
-        </ol>
-        <div className="admin-actions">
-          <CopyButton label="Copy script" url="/rsvp-sheet-sync.txt" />
-          <CopyButton label="Copy sync key" text={sheetKey()} />
-          <a className="btn btn-outline" href="/rsvp-sheet-sync.txt" target="_blank" rel="noreferrer">View script</a>
-        </div>
-        <p className="sheet-sync-note">
-          The key only lets the sheet read replies. It changes if you change the admin password.
-        </p>
-      </details>
+      <section className="sheet-sync">
+        <h2>Google Sheet</h2>
+        {!sheet.configured ? (
+          <p>Not connected yet. Still to add in Vercel: {sheet.missing.join(" and ")}.</p>
+        ) : (
+          <>
+            <p className={synced && !synced.ok ? "error" : undefined}>
+              {!synced ? "Connected. The first sync hasn’t run yet."
+                : synced.ok ? `Last synced ${fmt(synced.at)}: ${synced.message}.`
+                : `The last sync (${fmt(synced.at)}) didn’t work. ${synced.message}`}
+            </p>
+            <form action={syncNow}><button className="btn btn-outline">Sync now</button></form>
+            <p className="sheet-sync-note">
+              The sheet updates by itself whenever someone replies. To link a reply by hand, type the name from the RSVPs tab
+              into that guest’s “RSVP name(s)” cell, then press Sync now. Connected as {sheet.email}.
+            </p>
+          </>
+        )}
+      </section>
     </main>
   );
 }

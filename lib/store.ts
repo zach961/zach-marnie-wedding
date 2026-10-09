@@ -64,3 +64,44 @@ export async function deleteRsvp(id: string) {
   }
   await writeFile((await readFile()).filter((r) => r.id !== id));
 }
+
+// ── Small bits of state for the Google Sheet sync ─────────────────────────────
+
+export type SheetSyncStatus = { at: string; ok: boolean; message: string };
+
+// Without Redis (local development) these simply live in memory.
+const local = new Map<string, unknown>();
+
+export async function getSyncStatus(): Promise<SheetSyncStatus | null> {
+  if (redis) return (await redis.get<SheetSyncStatus>("sheet:status")) || null;
+  return (local.get("sheet:status") as SheetSyncStatus) || null;
+}
+
+export async function setSyncStatus(status: SheetSyncStatus) {
+  if (redis) await redis.set("sheet:status", status);
+  else local.set("sheet:status", status);
+}
+
+/** Takes a short-lived lock so two syncs never write to the sheet at once. */
+export async function tryLock(name: string, seconds: number) {
+  if (redis) return (await redis.set(name, "1", { nx: true, ex: seconds })) === "OK";
+  if (local.has(name)) return false;
+  local.set(name, true);
+  return true;
+}
+
+export async function unlock(name: string) {
+  if (redis) await redis.del(name);
+  else local.delete(name);
+}
+
+/** A flag another request can raise to ask the running sync to go round once more. */
+export async function raiseFlag(name: string) {
+  if (redis) await redis.set(name, "1", { ex: 300 });
+  else local.set(name, true);
+}
+
+export async function takeFlag(name: string) {
+  if (redis) return (await redis.del(name)) > 0;
+  return local.delete(name);
+}

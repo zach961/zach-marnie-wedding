@@ -22,19 +22,19 @@ Artwork lives in **`public/art/`** (replace a file with the same name to swap it
 - RSVPs close automatically after **14 November 2026, 11:59 PM AEST** (change `rsvpDeadline` in `lib/content.ts`).
 
 ## Google Sheet sync (guest list tracking)
-Replies are pulled into the **Wedding Planning** Google Sheet every 15 minutes by a small script that lives in the sheet
-(`public/rsvp-sheet-sync.txt`). It adds four columns to the **Guest List** tab (RSVP, Adults coming, RSVP name(s), Replied)
-and keeps a full log on an **RSVPs** tab, flagging anyone who isn't on the list.
+The site writes replies straight into the **Wedding Planning** Google Sheet through a Google service account, whenever
+someone replies or a reply is deleted, and on **Sync now** in `/admin`. It adds four columns to the **Guest List** tab
+(RSVP, Adults coming, RSVP name(s), Replied) and keeps a full log on an **RSVPs** tab, flagging anyone not on the list.
+Nothing else in the sheet is written to.
 
-Set-up is on the dashboard: `/admin` → *Google Sheet sync* → copy the script into *Extensions → Apps Script*, reload the
-sheet, then *Wedding RSVPs → Connect to the website…* and paste the sync key.
+Vercel environment variables: `GOOGLE_SERVICE_ACCOUNT_KEY` (the service account's JSON key file) and `GOOGLE_SHEET_ID`
+(the sheet's ID or address). The sheet must be shared with the service account's email as an Editor.
 
 - The guest list mostly holds first names, so a reply is linked automatically only when exactly one guest could be meant.
   Anything else shows as **NOT MATCHED** on the RSVPs tab with suggestions.
 - To link one by hand, type the name as it appears on the RSVPs tab into that guest's **RSVP name(s)** cell
-  (separate two names with a comma). To undo a link, clear the cell. It won't be re-linked automatically.
+  (separate two names with a comma), then press **Sync now**. To undo a link, clear the cell; it won't be re-linked.
 - Children are counted per reply but not matched to rows, because the form doesn't ask for children's names.
-- The sync key is read-only and derived from `ADMIN_PASSWORD`; changing the password means reconnecting the sheet.
 
 ## Run locally
 ```bash

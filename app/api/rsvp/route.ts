@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { addRsvp, storageReady } from "@/lib/store";
 import { rsvpDeadline } from "@/lib/content";
+import { syncSheet } from "@/lib/sheet-sync";
 
 export async function POST(req: Request) {
   if (Date.now() > new Date(rsvpDeadline.iso).getTime()) {
@@ -46,5 +47,7 @@ export async function POST(req: Request) {
     kids,
     names,
   });
+  // Update the Google Sheet once the guest has their answer; a sheet problem never affects the RSVP.
+  after(() => syncSheet());
   return NextResponse.json({ ok: true });
 }
