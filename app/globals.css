@@ -11,6 +11,7 @@
   --script: 'Pinyon Script', cursive;
 }
 
+:root { color-scheme: only light; }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
 body {
@@ -22,7 +23,7 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
-img { max-width: 100%; display: block; }
+img { max-width: 100%; height: auto; display: block; }
 button { font: inherit; color: inherit; cursor: pointer; }
 p { margin: 0; }
 
@@ -78,7 +79,7 @@ p { margin: 0; }
 /* ── Hero ────────────────────────────── */
 .hero {
   position: relative; overflow: hidden;
-  min-height: 100svh;
+  min-height: 100vh; min-height: 100svh;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   text-align: center; padding: 90px 20px 120px;
   background: var(--paper) url(/art/paper.jpg) center / cover;
@@ -89,15 +90,42 @@ p { margin: 0; }
 .hero > *:not(.corner) { position: relative; }
 .hero-date { font-family: var(--display); font-size: 22px; letter-spacing: 0.3em; font-weight: 600; }
 .hero-place { font-size: 17px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-soft); margin-top: 6px; }
-.hero-btn { margin-top: 34px; }
+.hero-invite { max-width: 31ch; margin: 22px auto 0; font-size: 19px; line-height: 1.45; text-wrap: balance; }
+.hero-invite span { display: block; }
+.hero-btn { margin-top: 24px; }
 .scroll-cue {
   position: absolute !important; bottom: 22px; left: 50%; transform: translateX(-50%);
   display: flex; flex-direction: column; align-items: center; gap: 2px;
   color: var(--ink); text-decoration: none;
-  font-size: 13px; letter-spacing: 0.25em; text-transform: uppercase;
+  font-size: 14px; letter-spacing: 0.25em; text-transform: uppercase; white-space: nowrap;
 }
 .scroll-cue svg { animation: bob 1.8s ease-in-out infinite; }
 @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(7px); } }
+
+/* Narrow phones: keep the place name on one line and the florals clear of the names. */
+@media (max-width: 359px) {
+  .hero-place { font-size: 15px; letter-spacing: 0.14em; }
+  .hero .corner.tl, .hero .corner.br { width: 50vw; }
+  .hero-btn { padding: 0 22px; letter-spacing: 0.18em; }
+}
+/* Short screens (small phones with the browser bars showing): tighten the spacing so the
+   message, RSVP button and scroll cue all stay on the first screen. */
+@media (max-height: 640px) {
+  .hero { padding: 58px 20px 78px; }
+  .hero .corner.tl, .hero .corner.br { width: min(42vw, 240px); }
+  .hero .divider { margin: 10px auto; }
+  .hero-invite { margin-top: 14px; }
+  .hero-btn { margin-top: 18px; }
+  .scroll-cue { bottom: 10px; }
+}
+@media (max-height: 500px) {
+  .hero { padding: 40px 20px 66px; }
+  .hero .corner.tl, .hero .corner.br { width: min(34vw, 200px); }
+  .hero .names { margin: 4px 0 2px; }
+  .hero .divider { margin: 6px auto; }
+  .hero-invite { margin-top: 10px; font-size: 18px; }
+  .hero-btn { margin-top: 14px; min-height: 48px; }
+}
 
 /* ── Sections ────────────────────────── */
 .section { padding: 72px 18px; }
@@ -111,9 +139,13 @@ p { margin: 0; }
 }
 .tab {
   border: 0; background: transparent; border-radius: 999px; min-height: 46px;
-  font-size: 14px; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 600;
+  padding: 0 6px; white-space: nowrap;
+  font-size: 15px; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 600;
   transition: background .25s, color .25s;
 }
+/* Keep each tab label on one line on narrower phones. */
+@media (max-width: 374px) { .tab { font-size: 14px; letter-spacing: 0.14em; } }
+@media (max-width: 359px) { .tab { padding: 0 4px; letter-spacing: 0.06em; } }
 .tab.active { background: var(--ink); color: var(--paper); }
 .card-viewport { overflow: hidden; border-radius: 4px; box-shadow: 0 10px 40px rgba(90,61,43,.12), 0 1px 3px rgba(90,61,43,.1); touch-action: pan-y; }
 .card-track { display: flex; width: 200%; transition: transform .55s cubic-bezier(.22,.8,.25,1), height .45s ease; align-items: flex-start; }
@@ -132,7 +164,7 @@ p { margin: 0; }
   font-size: clamp(24px, 7vw, 34px); letter-spacing: 0.16em; text-transform: uppercase; line-height: 1.25;
   margin: 8px 0;
 }
-.c-names { font-family: var(--script); white-space: nowrap; font-size: clamp(42px, 12.5vw, 76px); line-height: 1.1; margin: 4px 0 8px; }
+.c-names { font-family: var(--script); white-space: nowrap; font-size: clamp(38px, 12.5vw, 76px); line-height: 1.1; margin: 4px 0 8px; }
 .c-strong { font-family: var(--display); font-weight: 600; font-size: 18px; letter-spacing: 0.18em; text-transform: uppercase; line-height: 1.45; }
 .c-italic { font-style: italic; font-size: 19px; max-width: 28ch; }
 .c-art { mix-blend-mode: multiply; margin: 14px auto 18px; }
@@ -140,17 +172,19 @@ p { margin: 0; }
 .c-art.kwila { width: 96%; }
 .card .divider { margin: 10px auto; }
 
-.card-nav { display: flex; align-items: center; justify-content: center; gap: 22px; margin-top: 20px; }
+.card-nav { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 20px; }
 .nav-arrow {
   width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--ink); background: transparent;
   font-size: 28px; line-height: 1; padding-bottom: 4px;
 }
 .nav-arrow:disabled { opacity: .25; cursor: default; }
-.dots { display: flex; gap: 10px; }
-.dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--ink); background: transparent; padding: 0; }
-.dot.on { background: var(--ink); }
+/* The dot is 10px, but the button around it is a finger-sized target. */
+.dots { display: flex; }
+.dot { position: relative; width: 32px; height: 44px; border: 0; background: transparent; padding: 0; }
+.dot::before { content: ""; position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; box-sizing: border-box; border-radius: 50%; border: 1px solid var(--ink); }
+.dot.on::before { background: var(--ink); }
 .next-link {
-  display: block; margin: 14px auto 0; border: 0; background: none;
+  display: block; margin: 6px auto 0; min-height: 44px; padding: 0 12px; border: 0; background: none;
   font-size: 18px; font-style: italic; text-decoration: underline; text-underline-offset: 4px; color: var(--ink);
 }
 

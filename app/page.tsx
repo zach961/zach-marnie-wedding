@@ -1,4 +1,4 @@
-import { couple, dateShort, timeline, venues, transportNote, rsvpCopy, rsvpDeadline } from "@/lib/content";
+import { couple, dateShort, heroInvite, timeline, venues, transportNote, rsvpCopy, rsvpDeadline } from "@/lib/content";
 import Invitation from "@/components/Invitation";
 import RsvpForm from "@/components/RsvpForm";
 import StickyRsvp from "@/components/StickyRsvp";
@@ -11,10 +11,13 @@ export default function Home() {
 
   return (
     <main>
+      {/* The paper texture is a CSS background, so the browser only finds it late without this. */}
+      <link rel="preload" as="image" href="/art/paper.jpg" fetchPriority="high" />
+
       {/* ── Hero ───────────────────────────── */}
       <section className="hero" id="top">
-        <img className="corner tl" src="/art/pink-tl.webp" alt="" />
-        <img className="corner br" src="/art/pink-br.webp" alt="" />
+        <img className="corner tl" src="/art/pink-tl.webp" alt="" width={620} height={620} fetchPriority="high" />
+        <img className="corner br" src="/art/pink-br.webp" alt="" width={609} height={620} fetchPriority="high" />
         <p className="eyebrow">The wedding of</p>
         <h1 className="names">
           {couple.one} <span className="amp">&amp;</span> {couple.two}
@@ -22,6 +25,10 @@ export default function Home() {
         <Divider />
         <p className="hero-date">{dateShort}</p>
         <p className="hero-place">Gold Coast, Queensland</p>
+        <p className="hero-invite">
+          {heroInvite[0]}
+          <span>{heroInvite[1]}</span>
+        </p>
         {!closed && (
           <a href="#rsvp" className="btn btn-solid hero-btn">
             RSVP by {rsvpDeadline.label}

@@ -7,6 +7,12 @@ export const couple = { one: "Marnie", two: "Zach" };
 export const dateLine = "Saturday 23 January 2027";
 export const dateShort = "23 · 01 · 2027";
 
+/** Shown on the opening screen, above the RSVP button. */
+export const heroInvite = [
+  "We would love for you to join us in celebrating our special day.",
+  "Please see all details below.",
+];
+
 /** RSVPs close at the end of this day (Gold Coast time, AEST +10:00). */
 export const rsvpDeadline = { label: "14 November", iso: "2026-11-14T23:59:59+10:00" };
 

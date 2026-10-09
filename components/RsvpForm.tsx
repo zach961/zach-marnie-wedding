@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { rsvpCopy } from "@/lib/content";
 
 function Stepper({ label, value, min, max, onChange }: {
@@ -26,6 +26,12 @@ export default function RsvpForm() {
   const [website, setWebsite] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "done" | "error">("idle");
   const [error, setError] = useState("");
+  const doneRef = useRef<HTMLDivElement>(null);
+
+  // The thank-you is much shorter than the form, so bring it back into view on phones.
+  useEffect(() => {
+    if (status === "done") doneRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [status]);
 
   const setAdultCount = (n: number) => {
     setAdults(n);
@@ -56,7 +62,7 @@ export default function RsvpForm() {
 
   if (status === "done") {
     return (
-      <div className="rsvp-done" role="status">
+      <div className="rsvp-done" role="status" ref={doneRef}>
         <p className="names small">{attending ? "See you there!" : "Thank you"}</p>
         <p className="lead">{attending ? rsvpCopy.thanksYes : rsvpCopy.thanksNo}</p>
         {attending && (
@@ -93,6 +99,11 @@ export default function RsvpForm() {
                 className="input"
                 type="text"
                 autoComplete={k === 0 ? "name" : "off"}
+                autoCapitalize="words"
+                autoCorrect="off"
+                spellCheck={false}
+                enterKeyHint={k === names.length - 1 ? "send" : "next"}
+                aria-label={adults > 1 ? `Full name ${k + 1}` : "Full name"}
                 placeholder={adults > 1 ? `Full name ${k + 1}` : "Full name"}
                 value={n}
                 onChange={(e) => setNames((prev) => prev.map((p, j) => (j === k ? e.target.value : p)))}
