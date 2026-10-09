@@ -6,6 +6,7 @@
 
 import { colLetter, serviceAccount, SheetError, sheetId, sheets, tab } from "./google-sheets";
 import { autoLink, compute, flattenPeople, Grid, GuestLayout, OUR_HEADERS, parseGuestGrid, seenKeys, Summary } from "./sheet-match";
+import { tidyPlanner } from "./planner-tidy";
 import { getSyncStatus, listRsvps, raiseFlag, setSyncStatus, SheetSyncStatus, takeFlag, tryLock, unlock } from "./store";
 
 const GUEST_TAB = "Guest List";
@@ -217,6 +218,9 @@ async function runSync(): Promise<Summary> {
     });
   }
   await sheets(":batchUpdate", { requests });
+
+  // Housekeeping on the action list. A problem here must never fail the RSVP sync.
+  await tidyPlanner(meta.sheets).catch((err) => console.error("Planner tidy failed", err));
   return s;
 }
 
