@@ -60,6 +60,24 @@ async function addGuestColumns(meta: TabMeta, grid: Grid, layout: GuestLayout) {
       },
     });
   }
+  // Match the table's own look: copy the formatting of the column just left of ours (headers and guest rows).
+  const like = first - 1;
+  if (like >= 0) {
+    const copy = (startRowIndex: number, endRowIndex: number) => requests.push({
+      copyPaste: {
+        source: { sheetId: id, startRowIndex, endRowIndex, startColumnIndex: like - 1 >= 0 ? like - 1 : like, endColumnIndex: (like - 1 >= 0 ? like - 1 : like) + 1 },
+        destination: { sheetId: id, startRowIndex, endRowIndex, startColumnIndex: first, endColumnIndex: first + OUR_HEADERS.length },
+        pasteType: "PASTE_FORMAT",
+      },
+    });
+    for (const h of layout.headerRows) copy(h, h + 1);
+    let start = -1;
+    layout.guests.forEach((g, i) => {
+      if (start < 0) start = g.r;
+      const next = layout.guests[i + 1];
+      if (!next || next.r !== g.r + 1) { copy(start, g.r + 1); start = -1; }
+    });
+  }
   [120, 110, 240, 90].forEach((pixelSize, i) => requests.push({
     updateDimensionProperties: {
       range: { sheetId: id, dimension: "COLUMNS", startIndex: first + i, endIndex: first + i + 1 },
@@ -89,6 +107,15 @@ async function createRsvpTab(): Promise<TabMeta> {
   await sheets(":batchUpdate", {
     requests: [
       bold(1, 14), bold(4), bold(HEAD_ROW),
+      { repeatCell: {
+        range: { sheetId: id, startRowIndex: HEAD_ROW - 1, endRowIndex: HEAD_ROW },
+        cell: { userEnteredFormat: { backgroundColor: rgb("#f8f3ea") } }, fields: "userEnteredFormat.backgroundColor",
+      } },
+      { repeatCell: {
+        range: { sheetId: id, startRowIndex: HEAD_ROW, startColumnIndex: 4, endColumnIndex: 6 },
+        cell: { userEnteredFormat: { wrapStrategy: "WRAP" } }, fields: "userEnteredFormat.wrapStrategy",
+      } },
+      { setBasicFilter: { filter: { range: { sheetId: id, startRowIndex: HEAD_ROW - 1, startColumnIndex: 0, endColumnIndex: HEADERS.length } } } },
       ...[150, 200, 90, 200, 260, 240, 110, 120, 110, 110].map((pixelSize, i) => ({
         updateDimensionProperties: { range: { sheetId: id, dimension: "COLUMNS", startIndex: i, endIndex: i + 1 }, properties: { pixelSize }, fields: "pixelSize" },
       })),
