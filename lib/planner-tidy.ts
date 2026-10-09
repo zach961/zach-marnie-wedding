@@ -1,11 +1,11 @@
-// Keeps the "Vendors & Action Items" tab tidy: items marked Done, Paid or Not needed move down to the
+// Keeps the "Vendors & Action Items" tab tidy: items marked Booked/Done, Paid or Not needed move down to the
 // Done section, and anything reopened moves back under its own heading. Rows are moved whole, so
 // their contents, formulas and formatting travel with them.
 
 import { sheets, tab } from "./google-sheets";
 
 const PLANNER_TAB = "Vendors & Action Items";
-const FINISHED = ["done", "paid", "not needed"];
+const FINISHED = ["booked/done", "booked", "done", "paid", "not needed"];
 const CATEGORY_COL = 13; // hidden column N holds each item's section
 
 type Cell = string | number | boolean | null | undefined;
