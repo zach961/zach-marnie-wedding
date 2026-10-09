@@ -1,14 +1,14 @@
 # Handoff Brief: Marnie & Zach Wedding Site + RSVP
 
 > Paste this into Claude Code as context, or tell it: "Read HANDOFF.md and continue."
-> Repo: `github.com/zach961/zach-marnie-wedding` (private, branch `main`)
+> Repo: `github.com/zach961/zach-marnie-wedding` (branch `main`; currently public)
 
 ---
 
 ## 1. What this is
 This is a custom wedding invitation and RSVP website. It replaces a **Paperless Post** invite (`https://pp.events/b7NWXMxE`). Guests receive one shared link by text or message. Owner: **Zach** (groom). Partner: **Marnie**.
 
-**Current status:** the code is complete, has been tested locally, and is pushed to GitHub. **It is NOT deployed yet.** The remaining work is Vercel deployment, storage, an env var and a live test.
+**Current status (9 October 2026):** deployed and live at `https://zach-marnie-wedding.vercel.app` (Vercel project `zach961/zach-marnie-wedding`, pushes to `main` auto-deploy, Upstash Redis connected). Sections 6 and 7 below are historical. Since the original brief: Next.js was upgraded to 15.5.27 (Vercel blocks older, vulnerable versions), the hero gained an invitation line, the site was optimised for mobile, and a Google Sheet sync was added (see README).
 
 ---
 
@@ -44,7 +44,7 @@ Other PP issues fixed: details text that didn't match the cards, Kwila Lodge mis
 
 ## 4. Decisions made (don't re-ask)
 - **Stack:** Next.js 15 (App Router) + React 19 + TypeScript, hosted on **Vercel (free `*.vercel.app` link, no custom domain)**.
-- **Storage:** **Upstash Redis via the Vercel Marketplace** (free). Zach did not want a Google Sheet or Supabase. The code accepts `KV_REST_API_URL`/`KV_REST_API_TOKEN` *or* `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN`.
+- **Storage:** **Upstash Redis via the Vercel Marketplace** (free). Zach did not want a Google Sheet or Supabase as the store. He later asked for replies to be *tracked* in his Wedding Planning sheet, which the Apps Script sync does by reading `/api/sheet-feed`. The code accepts `KV_REST_API_URL`/`KV_REST_API_TOKEN` *or* `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN`.
 - **Guest check:** **open form.** Anyone with the link can RSVP, with no matching against the guest list. Zach reconciles against his own guest sheet using the CSV export.
 - **Ceremony-only guests** are handled with printed invitations, **outside this site**. The site is for guests invited to both events.
 - **Data collected:** attending yes/no, number of adults, number of children, **a full name for each adult**. Nothing else (no email, dietary or songs) unless Zach asks.

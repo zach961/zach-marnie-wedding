@@ -1,8 +1,9 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { COOKIE, isAdmin, sessionToken } from "@/lib/auth";
+import { COOKIE, isAdmin, sessionToken, sheetKey } from "@/lib/auth";
 import { deleteRsvp, listRsvps } from "@/lib/store";
+import CopyButton from "@/components/CopyButton";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "RSVPs · Admin", robots: { index: false } };
@@ -95,6 +96,27 @@ export default async function Admin() {
           </table>
         </div>
       )}
+
+      <details className="sheet-sync">
+        <summary>Google Sheet sync</summary>
+        <p>
+          Keeps the Guest List tab of your Wedding Planning sheet up to date with these replies: who has replied,
+          who is coming, who has declined, and anyone who isn’t on the list.
+        </p>
+        <ol>
+          <li>Copy the script. In the sheet, open Extensions → Apps Script, paste it in place of the placeholder code, and save.</li>
+          <li>Reload the sheet, then choose Wedding RSVPs → Connect to the website…</li>
+          <li>Approve Google’s permission prompt, choose Connect to the website… once more, and paste the sync key.</li>
+        </ol>
+        <div className="admin-actions">
+          <CopyButton label="Copy script" url="/rsvp-sheet-sync.txt" />
+          <CopyButton label="Copy sync key" text={sheetKey()} />
+          <a className="btn btn-outline" href="/rsvp-sheet-sync.txt" target="_blank" rel="noreferrer">View script</a>
+        </div>
+        <p className="sheet-sync-note">
+          The key only lets the sheet read replies. It changes if you change the admin password.
+        </p>
+      </details>
     </main>
   );
 }
