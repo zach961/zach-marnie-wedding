@@ -37,7 +37,8 @@ export type Person = {
   kids: number;
   party: string[]; // the other names on the same reply
   transport: boolean | null; // null when the reply didn't answer the question
-  superseded?: boolean;
+  superseded?: boolean; // an older reply under the same name; the newest one counts
+  repeat?: boolean; // the same name typed again on the same reply: a second adult, still counted
 };
 
 const TITLES = ["uncle", "aunty", "auntie", "aunt", "grandma", "grandpa", "nana", "nan", "pop", "dad", "mum", "mom",
@@ -129,13 +130,27 @@ export function seenKeys(rows: Grid) {
 
 function markSuperseded(people: Person[]) {
   people.sort((a, b) => String(b.date).localeCompare(String(a.date)));
-  const latest = new Set<string>();
+  const latest = new Map<string, string>(); // name → the newest reply it appears on
   for (const p of people) {
     const n = norm(p.name);
-    p.superseded = latest.has(n);
-    latest.add(n);
+    const reply = latest.get(n);
+    // Only a different, older reply is superseded. The same name twice on one reply is two adults.
+    p.superseded = reply !== undefined && reply !== p.replyId;
+    p.repeat = reply === p.replyId;
+    if (reply === undefined) latest.set(n, p.replyId);
   }
   return people;
+}
+
+const shortFor = (a: string, b: string) => a === b || (Math.min(a.length, b.length) >= 3 && (a.startsWith(b) || b.startsWith(a)));
+
+/** True when the two words differ by a single changed, missing or extra letter. */
+function oneLetterOut(a: string, b: string) {
+  if (Math.abs(a.length - b.length) > 1) return false;
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  const rest = (x: string, n: number) => x.slice(n);
+  return rest(a, i + 1) === rest(b, i + 1) || rest(a, i) === rest(b, i + 1) || rest(a, i + 1) === rest(b, i);
 }
 
 /**
@@ -153,7 +168,12 @@ export function candidates(guests: Guest[], name: string, anyCapacity: boolean) 
     const t = g.tokens;
     let score = 0;
     if (t.length >= 2) {
-      if (p.length >= 2 && t[0] === p[0] && t[t.length - 1] === p[p.length - 1]) score = 3;
+      if (p.length >= 2) {
+        const first = t[0], last = t[t.length - 1], pFirst = p[0], pLast = p[p.length - 1];
+        if (first === pFirst && last === pLast) score = 3;
+        // Near enough: a short form of the first name (Zach / Zachariah) and a surname at most one letter out.
+        else if (shortFor(first, pFirst) && (last === pLast || (Math.min(last.length, pLast.length) >= 5 && oneLetterOut(last, pLast)))) score = 2.5;
+      }
     } else if (t[0] === p[0]) {
       score = p.length === 1 ? 2 : 1;
     }
@@ -223,6 +243,9 @@ export function compute(guests: Guest[], people: Person[]): { guests: GuestResul
     if (p.superseded) {
       note = "Earlier reply from the same name. The newer one counts.";
       match = g ? g.name : "";
+    } else if (p.repeat) {
+      note = "Same name entered twice on this reply. Counted as a second adult.";
+      match = g ? g.name : "NOT MATCHED";
     } else if (g) {
       match = g.name;
       if (g.links.length > Math.max(1, g.adults)) note = "More names than this guest's invite";
