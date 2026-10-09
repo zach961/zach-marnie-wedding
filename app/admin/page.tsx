@@ -58,6 +58,8 @@ export default async function Admin() {
   const rsvps = await listRsvps();
   const sheet = sheetConnection();
   const synced = sheet.configured ? await getSyncStatus() : null;
+  // Opening the dashboard also refreshes the sheet in the background (at most once a minute).
+  if (sheet.configured && (!synced || Date.now() - new Date(synced.at).getTime() > 60_000)) after(() => syncSheet());
   const yes = rsvps.filter((r) => r.attending);
   const no = rsvps.filter((r) => !r.attending);
   const adults = yes.reduce((s, r) => s + r.adults, 0);
@@ -121,7 +123,7 @@ export default async function Admin() {
             </p>
             <form action={syncNow}><button className="btn btn-outline">Sync now</button></form>
             <p className="sheet-sync-note">
-              The sheet updates by itself whenever someone replies. To link a reply by hand, type the name from the RSVPs tab
+              The sheet updates by itself whenever someone replies, whenever you open this page, and once a day. To link a reply by hand, type the name from the RSVPs tab
               into that guest’s “RSVP name(s)” cell, then press Sync now. Connected as {sheet.email}.
             </p>
           </>

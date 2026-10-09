@@ -23,7 +23,7 @@ Artwork lives in **`public/art/`** (replace a file with the same name to swap it
 
 ## Google Sheet sync (guest list tracking)
 The site writes replies straight into the **Wedding Planning** Google Sheet through a Google service account, whenever
-someone replies or a reply is deleted, and on **Sync now** in `/admin`. It adds four columns to the **Guest List** tab
+someone replies or a reply is deleted, whenever `/admin` is opened, once a day (`vercel.json`), and on **Sync now**. It adds four columns to the **Guest List** tab
 (RSVP, Adults coming, RSVP name(s), Replied) and keeps a full log on an **RSVPs** tab, flagging anyone not on the list.
 Nothing else in the sheet is written to.
 
