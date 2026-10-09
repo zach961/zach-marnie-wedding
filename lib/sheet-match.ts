@@ -105,11 +105,13 @@ export function parseGuestGrid(grid: Grid): GuestLayout {
 export function flattenPeople(rsvps: Rsvp[]): Person[] {
   const people: Person[] = [];
   for (const r of rsvps) {
-    const names = (r.names || []).map((n) => String(n).trim()).filter(Boolean);
+    // A name typed twice on one reply is one person.
+    const names = (r.names || []).map((n) => String(n).trim()).filter(Boolean)
+      .filter((n, i, all) => all.findIndex((x) => norm(x) === norm(n)) === i);
     for (const name of names) {
       people.push({
         key: `${r.id}|${norm(name)}`, replyId: r.id, name, attending: r.attending === true,
-        date: r.createdAt, adults: num(r.adults), kids: r.attending === true ? num(r.kids) : 0,
+        date: r.createdAt, adults: names.length, kids: r.attending === true ? num(r.kids) : 0,
         party: names.filter((n) => n !== name),
         transport: r.attending === true && typeof r.transport === "boolean" ? r.transport : null,
       });
@@ -272,7 +274,8 @@ export function compute(guests: Guest[], people: Person[]): { guests: GuestResul
 
   return {
     guests: guestOut,
-    people: peopleOut,
+    // One row per person: only their latest reply is listed.
+    people: peopleOut.filter((p) => !p.superseded),
     summary: {
       replied: current.length,
       attending: current.filter((p) => p.attending).length,

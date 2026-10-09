@@ -6,7 +6,6 @@ import { sheets, tab } from "./google-sheets";
 
 const PLANNER_TAB = "Vendors & Action Items";
 const FINISHED = ["booked/done", "booked", "done", "paid", "not needed"];
-const CATEGORY_COL = 13; // hidden column N holds each item's section
 
 type Cell = string | number | boolean | null | undefined;
 export type Move = { from: number; to: number }; // 0-based rows; `to` is the row to insert before
@@ -16,8 +15,12 @@ const text = (v: Cell) => String(v ?? "").trim();
 /** Works out the row moves needed, in order. Each move assumes the ones before it have been made. */
 export function planMoves(grid: Cell[][]): Move[] {
   // Work on a list of row kinds so each move can be simulated before planning the next.
-  const rows = grid.map((r) => {
+  // A hidden "Category" column holds each item's section.
+  const CATEGORY_COL = Math.max(0, (grid[0] || []).findIndex((c) => text(c).toLowerCase() === "category"));
+  if (!CATEGORY_COL) return [];
+  const rows = grid.map((r, index) => {
     const row = r || [];
+    if (index === 0) return { kind: "other" as const }; // the column headings
     const category = text(row[CATEGORY_COL]);
     const filled = row.filter((c, i) => i !== CATEGORY_COL && text(c)).length;
     if (category) return { kind: "item" as const, category, finished: FINISHED.includes(text(row[1]).toLowerCase()) };
