@@ -5,7 +5,7 @@
 // Nothing else in the sheet is written to.
 
 import { colLetter, serviceAccount, SheetError, sheetId, sheets, tab } from "./google-sheets";
-import { autoLink, compute, flattenPeople, Grid, GuestLayout, OUR_HEADERS, parseGuestGrid, seenKeys, Summary } from "./sheet-match";
+import { autoLink, compute, flattenPeople, Grid, GuestLayout, KIDS_HEADER, OUR_HEADERS, parseGuestGrid, seenKeys, Summary } from "./sheet-match";
 import { tidyPlanner } from "./planner-tidy";
 import { getSyncStatus, listRsvps, raiseFlag, setSyncStatus, SheetSyncStatus, takeFlag, tryLock, unlock } from "./store";
 
@@ -47,6 +47,37 @@ export function sheetConnection() {
 type TabMeta = { properties: { sheetId: number; title: string; gridProperties?: { columnCount?: number } } };
 
 /** Adds our four columns to the right of the guest table the first time. */
+/** Adds the "Kids coming" column after the existing RSVP columns, styled like the "Replied" column. */
+async function addKidsColumn(meta: TabMeta, grid: Grid, layout: GuestLayout) {
+  const id = meta.properties.sheetId;
+  const col = Math.max(layout.cols.replied + 1, ...grid.map((row) => (row || []).length));
+  const requests: unknown[] = [];
+  const short = col + 1 - (meta.properties.gridProperties?.columnCount || 0);
+  if (short > 0) requests.push({ appendDimension: { sheetId: id, dimension: "COLUMNS", length: short } });
+  const last = Math.max(...layout.headerRows, ...layout.guests.map((g) => g.r)) + 1;
+  requests.push({
+    copyPaste: {
+      source: { sheetId: id, startRowIndex: 0, endRowIndex: last, startColumnIndex: layout.cols.replied, endColumnIndex: layout.cols.replied + 1 },
+      destination: { sheetId: id, startRowIndex: 0, endRowIndex: last, startColumnIndex: col, endColumnIndex: col + 1 },
+      pasteType: "PASTE_FORMAT",
+    },
+  });
+  for (const h of layout.headerRows) {
+    requests.push({
+      updateCells: {
+        range: { sheetId: id, startRowIndex: h, endRowIndex: h + 1, startColumnIndex: col, endColumnIndex: col + 1 },
+        rows: [{ values: [{ userEnteredValue: { stringValue: KIDS_HEADER } }] }],
+        fields: "userEnteredValue",
+      },
+    });
+  }
+  requests.push({
+    updateDimensionProperties: { range: { sheetId: id, dimension: "COLUMNS", startIndex: col, endIndex: col + 1 }, properties: { pixelSize: 100 }, fields: "pixelSize" },
+  });
+  await sheets(":batchUpdate", { requests });
+  layout.cols.kidsComing = col;
+}
+
 async function addGuestColumns(meta: TabMeta, grid: Grid, layout: GuestLayout) {
   const id = meta.properties.sheetId;
   const first = Math.max(0, ...grid.map((row) => (row || []).length));
@@ -146,6 +177,7 @@ async function runSync(): Promise<Summary> {
   if (!layout.headerRows.length) throw new SheetError(`Couldn't find a "Guest / Party Name" heading on the ${GUEST_TAB} tab.`);
   const { cols } = layout;
   if (cols.rsvp < 0 || cols.coming < 0 || cols.link < 0 || cols.replied < 0) await addGuestColumns(guestMeta, grid, layout);
+  if (cols.kidsComing < 0) await addKidsColumn(guestMeta, grid, layout);
 
   // Anyone already on the RSVPs tab has had their one automatic match attempt.
   const people = flattenPeople(await listRsvps());
@@ -169,6 +201,7 @@ async function runSync(): Promise<Summary> {
   column(cols.rsvp, (i) => result.guests[i].status);
   column(cols.coming, (i) => result.guests[i].coming);
   column(cols.replied, (i) => when(result.guests[i].replied, false));
+  column(cols.kidsComing, (i) => result.guests[i].kids);
   for (const g of changed) data.push({ range: `${guestTab}!${colLetter(cols.link)}${g.r + 1}`, values: [[g.links.join(", ")]] });
 
   const s = result.summary;
@@ -223,7 +256,7 @@ async function runSync(): Promise<Summary> {
     requests.push({
       updateCells: {
         range: { ...matchCol, endRowIndex: FIRST_ROW - 1 + replies.length },
-        rows: replies.map((r) => ({ values: [paint(r.some((p) => !p.matched) ? FLAG : null)] })),
+        rows: replies.map((r) => ({ values: [paint(r.some((p) => p.attending && !p.matched) ? FLAG : null)] })),
         fields: "userEnteredFormat.backgroundColor",
       },
     });

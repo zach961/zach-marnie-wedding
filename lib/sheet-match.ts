@@ -4,6 +4,8 @@ import type { Rsvp } from "./store";
 
 export const NAME_HEADER = "Guest / Party Name";
 export const OUR_HEADERS = ["RSVP", "Adults coming", "RSVP name(s)", "Replied"];
+/** Added later, to the right of the others: children from the reply, shown on the row of whoever replied. */
+export const KIDS_HEADER = "Kids coming";
 
 type Cell = string | number | boolean | null | undefined;
 export type Grid = Cell[][];
@@ -22,7 +24,7 @@ export type Guest = {
 
 export type GuestCols = {
   name: number; adults: number; kids: number; under6: number;
-  rsvp: number; coming: number; link: number; replied: number;
+  rsvp: number; coming: number; link: number; replied: number; kidsComing: number;
 };
 
 export type GuestLayout = { headerRows: number[]; cols: GuestCols; guests: Guest[] };
@@ -65,7 +67,7 @@ export function parseGuestGrid(grid: Grid): GuestLayout {
     const c = (row || []).findIndex((v) => is(v, NAME_HEADER));
     if (c >= 0) { headerRows.push(r); if (nameCol < 0) nameCol = c; }
   });
-  const cols: GuestCols = { name: nameCol, adults: -1, kids: -1, under6: -1, rsvp: -1, coming: -1, link: -1, replied: -1 };
+  const cols: GuestCols = { name: nameCol, adults: -1, kids: -1, under6: -1, rsvp: -1, coming: -1, link: -1, replied: -1, kidsComing: -1 };
   const guests: Guest[] = [];
   if (!headerRows.length) return { headerRows, cols, guests };
 
@@ -78,6 +80,7 @@ export function parseGuestGrid(grid: Grid): GuestLayout {
   cols.coming = find(OUR_HEADERS[1]);
   cols.link = find(OUR_HEADERS[2]);
   cols.replied = find(OUR_HEADERS[3]);
+  cols.kidsComing = find(KIDS_HEADER);
 
   for (const h of headerRows) {
     const section = h > 0 ? String((grid[h - 1] || [])[nameCol] ?? "").trim() : "";
@@ -216,7 +219,7 @@ export function autoLink(guests: Guest[], people: Person[], seen: Set<string>) {
   return Array.from(changed);
 }
 
-export type GuestResult = { r: number; status: string; coming: number | ""; replied: string };
+export type GuestResult = { r: number; status: string; coming: number | ""; replied: string; kids: number | "" };
 export type PersonResult = Person & { match: string; note: string; matched: boolean };
 export type Summary = { replied: number; attending: number; declined: number; kids: number; unmatched: number; awaiting: number; transport: number };
 
@@ -227,7 +230,17 @@ export function compute(guests: Guest[], people: Person[]): { guests: GuestResul
   const owner = new Map<string, Guest>();
   for (const g of guests) for (const n of g.links) if (!owner.has(norm(n))) owner.set(norm(n), g);
 
-  const guestOut = guests.map((g): GuestResult => {
+  // Each attending reply's children go on the guest row of the first person on that reply who is matched.
+  const kidsFor = new Map<Guest, number>();
+  const placed = new Set<string>();
+  for (const p of people) {
+    const g = owner.get(norm(p.name));
+    if (p.superseded || !p.attending || !p.kids || !g || placed.has(p.replyId)) continue;
+    placed.add(p.replyId);
+    kidsFor.set(g, (kidsFor.get(g) || 0) + p.kids);
+  }
+  const guestOut = guests.map((g): GuestResult => ({ ...rowResult(g), kids: kidsFor.get(g) || "" }));
+  function rowResult(g: Guest): Omit<GuestResult, "kids"> {
     if (!g.links.length) return { r: g.r, status: "", coming: "", replied: "" };
     const found = g.links.map((n) => latest.get(norm(n))).filter((p): p is Person => Boolean(p));
     if (!found.length) return { r: g.r, status: "Check name", coming: "", replied: "" };
@@ -236,7 +249,7 @@ export function compute(guests: Guest[], people: Person[]): { guests: GuestResul
     if (found.length < g.links.length) status += " (check name)";
     const replied = found.map((p) => String(p.date)).sort().pop() || "";
     return { r: g.r, status, coming: yes, replied };
-  });
+  }
 
   const peopleOut = people.map((p): PersonResult => {
     const g = owner.get(norm(p.name));
@@ -281,7 +294,8 @@ export function compute(guests: Guest[], people: Person[]): { guests: GuestResul
       attending: current.filter((p) => p.attending).length,
       declined: current.filter((p) => !p.attending).length,
       kids,
-      unmatched: current.filter((p) => !owner.get(norm(p.name))).length,
+      // Declines that don't match anyone don't need sorting out, so only attending people count here.
+      unmatched: current.filter((p) => p.attending && !owner.get(norm(p.name))).length,
       awaiting: guests.filter((g) => g.adults > 0 && !g.kidRow && !g.links.length).length,
       transport,
     },
